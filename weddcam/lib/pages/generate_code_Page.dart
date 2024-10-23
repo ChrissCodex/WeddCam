@@ -171,7 +171,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(13.0),
+        padding: const EdgeInsets.all(10.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -182,7 +182,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                 labelText: 'Card Type',
                 border: OutlineInputBorder(),
                 contentPadding: const EdgeInsets.symmetric(
-                    vertical: 12.0, horizontal: 14.0),
+                    vertical: 12.0, horizontal: 11.0),
                 filled: true,
                 fillColor: Colors.grey[200],
               ),
@@ -190,7 +190,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
               items: ['Single', 'Double'].map((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
-                  child: Text(value, style: const TextStyle(fontSize: 16)),
+                  child: Text(value, style: const TextStyle(fontSize: 14)),
                 );
               }).toList(),
               onChanged: (String? newValue) {
@@ -199,7 +199,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                 }
               },
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 4),
             TextField(
               controller: cardNumberController,
               decoration: const InputDecoration(
@@ -207,7 +207,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 4),
             TextField(
               controller: firstNameController,
               decoration: const InputDecoration(
@@ -215,7 +215,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 4),
             TextField(
               controller: lastNameController,
               decoration: const InputDecoration(
@@ -224,7 +224,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
               ),
             ),
             
-            const SizedBox(height: 5),
+            const SizedBox(height: 4),
             ElevatedButton(
               onPressed: () async {
                 if (cardNumberController.text.isNotEmpty &&
@@ -278,12 +278,12 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                 key: globalKey,
                 child: Container(
                   color: Colors.white,
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(6),
                   child: QrImageView(
                     data:
                         '${cardNumberController.text}|${firstNameController.text}|${lastNameController.text}|$cardType',
                     version: QrVersions.auto,
-                    size: 100.0,
+                    size: 90.0,
                     backgroundColor: Colors.white,
                   ),
                 ),
