@@ -8,6 +8,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:printing/printing.dart'; // Import the printing package
 import 'package:pdf/widgets.dart' as pw; // Import pdf widgets for creating the document
+import 'package:flutter/services.dart'; // Import rootBundle for loading assets
 
 class GenerateCodePage extends StatefulWidget {
   const GenerateCodePage({super.key});
@@ -96,13 +97,17 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
 
   // Function to print the QR code
   Future<void> _printQrCode() async {
-    // Use WidgetsBinding to ensure the frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
-        final image = await _capturePng(); // Capture QR code image
+        // Capture the QR code as a base64 image
+        final image = await _capturePng();
         if (image.isEmpty) {
-          throw Exception('QR code image is empty'); // Ensure the image is not empty
+          throw Exception('QR code image is empty');
         }
+
+        // Load the logo image from assets
+        final ByteData logoData = await rootBundle.load('assets/logo.jpg');
+        final Uint8List logoBytes = logoData.buffer.asUint8List();
 
         await Printing.layoutPdf(
           onLayout: (PdfPageFormat format) async {
@@ -111,7 +116,24 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
             pdfDocument.addPage(
               pw.Page(
                 build: (pw.Context context) => pw.Center(
-                  child: pw.Image(pw.MemoryImage(base64Decode(image))),
+                  child: pw.Column(
+                    mainAxisAlignment: pw.MainAxisAlignment.center,
+                    children: [
+                      // Display the logo image first
+                      pw.Image(
+                        pw.MemoryImage(logoBytes),
+                        width: 100, // You can adjust the size as needed
+                        height: 100,
+                      ),
+                       pw.SizedBox(height: 18), // Add some space
+                      // Display the QR code below the logo
+                      pw.Image(
+                        pw.MemoryImage(base64Decode(image)),
+                        width: 200,
+                        height: 200,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -120,7 +142,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
           },
         );
       } catch (e) {
-        print('Error during printing: $e'); // Debugging line
+        print('Error during printing: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error during printing: $e')),
         );
@@ -160,7 +182,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                 labelText: 'Card Type',
                 border: OutlineInputBorder(),
                 contentPadding: const EdgeInsets.symmetric(
-                    vertical: 12.0, horizontal: 16.0),
+                    vertical: 12.0, horizontal: 14.0),
                 filled: true,
                 fillColor: Colors.grey[200],
               ),
@@ -177,7 +199,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                 }
               },
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 5),
             TextField(
               controller: cardNumberController,
               decoration: const InputDecoration(
@@ -185,7 +207,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 5),
             TextField(
               controller: firstNameController,
               decoration: const InputDecoration(
@@ -193,7 +215,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 5),
             TextField(
               controller: lastNameController,
               decoration: const InputDecoration(
@@ -202,7 +224,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
               ),
             ),
             
-            const SizedBox(height: 6),
+            const SizedBox(height: 5),
             ElevatedButton(
               onPressed: () async {
                 if (cardNumberController.text.isNotEmpty &&
@@ -247,20 +269,25 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
               },
               child: const Text('Generate QR Code'),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 5),
             // Conditional display of QR code
             if (cardNumberController.text.isNotEmpty &&
                 firstNameController.text.isNotEmpty &&
-                lastNameController.text.isNotEmpty) ...[
+                lastNameController.text.isNotEmpty)
               RepaintBoundary(
                 key: globalKey,
-                child: QrImageView(
-                  data: cardNumberController.text,
-                  version: QrVersions.auto,
-                  size: 160.0,
+                child: Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.all(10),
+                  child: QrImageView(
+                    data:
+                        '${cardNumberController.text}|${firstNameController.text}|${lastNameController.text}|$cardType',
+                    version: QrVersions.auto,
+                    size: 120.0,
+                    backgroundColor: Colors.white,
+                  ),
                 ),
               ),
-            ],
           ],
         ),
       ),
