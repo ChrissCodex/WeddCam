@@ -7,8 +7,7 @@ import 'dart:convert'; // For JSON encoding and base64 conversion
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:printing/printing.dart'; // Import the printing package
-import 'package:pdf/widgets.dart'
-    as pw; // Import pdf widgets for creating the document
+import 'package:pdf/widgets.dart' as pw; // Import pdf widgets for creating the document
 
 class GenerateCodePage extends StatefulWidget {
   const GenerateCodePage({super.key});
@@ -53,7 +52,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
   Future<void> _sendDataToServer(String cardNumber, String firstName,
       String lastName, String cardType, String base64Image) async {
     var url = Uri.parse(
-        'https://theparrot.co.tz/mis.theparrot.co.tz/api/endpoint_api.php'); // Replace with your server's URL
+        'https://amplepack.co.tz/endpoint_api.php'); // Replace with your server's URL
 
     // Data to send
     var data = {
@@ -102,8 +101,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
       try {
         final image = await _capturePng(); // Capture QR code image
         if (image.isEmpty) {
-          throw Exception(
-              'QR code image is empty'); // Ensure the image is not empty
+          throw Exception('QR code image is empty'); // Ensure the image is not empty
         }
 
         await Printing.layoutPdf(
@@ -138,8 +136,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.popAndPushNamed(
-                  context, "/scan"); // Switch to scan page
+              Navigator.popAndPushNamed(context, "/scan"); // Switch to scan page
             },
             icon: const Icon(Icons.qr_code_scanner),
           ),
@@ -203,7 +200,6 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                 }
               },
             ),
-
             const SizedBox(height: 6),
             ElevatedButton(
               onPressed: () async {
@@ -214,7 +210,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                   setState(() {}); // Ensure the QR code gets rendered
 
                   // Add a slight delay to allow the UI to rebuild
-                  await Future.delayed(Duration(milliseconds: 100));
+                  await Future.delayed(const Duration(milliseconds: 100));
 
                   // Capture the QR code as base64
                   String base64Image = await _capturePng();
@@ -256,15 +252,10 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                 lastNameController.text.isNotEmpty) ...[
               RepaintBoundary(
                 key: globalKey,
-                child: SizedBox(
-                  height: 100,
-                  width: 100,
-                  child: QrImageView(
-                    data:
-                        '${cardNumberController.text},${firstNameController.text},${lastNameController.text},$cardType',
-                    version: QrVersions.auto,
-                    size: 180.0,
-                  ),
+                child: QrImageView(
+                  data: cardNumberController.text,
+                  version: QrVersions.auto,
+                  size: 200.0,
                 ),
               ),
             ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'pages/generate_code_Page.dart';
+import 'pages/generate_code_page.dart';
 import 'pages/scan_code_page.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -18,9 +19,9 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         "/generate": (context) => const GenerateCodePage(),
-        "/scan": (context) => const ScanCodePage(),
+        "/scan": (context) =>  const ScanCodePage(),
       },
-      initialRoute: "/scan", // This will load ScanCodePage first
+      initialRoute: "/scan", // Start with ScanCodePage
     );
   }
 }

@@ -1,60 +1,79 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert'; // For JSON encoding and decoding
+import 'dart:convert';
 
 class ScanCodePage extends StatefulWidget {
-  const ScanCodePage({super.key});
+  const ScanCodePage({Key? key}) : super(key: key);
 
   @override
   State<ScanCodePage> createState() => _ScanCodePageState();
 }
 
 class _ScanCodePageState extends State<ScanCodePage> {
-  String? scannedData;
+  MobileScannerController cameraController = MobileScannerController();
+  Map<String, dynamic>? cardDetails;
+  bool isLoading = false; // To manage loading state
 
-  // Function to fetch scanned QR code details from the server
-  Future<void> _fetchCardDetails(String cardNumber) async {
-    var url = Uri.parse(
-        'https://theparrot.co.tz/mis.theparrot.co.tz/api/get_card_details.php'); // Your API URL
+  void _fetchCardDetails(String qrCode) async {
+    var url = Uri.parse('https://amplepack.co.tz/get_card_details.php');
 
     try {
+      // Debug print the QR code being sent
+      print('Sending QR code: $qrCode');
+      setState(() {
+        isLoading = true; // Start loading
+      });
+
       var response = await http.post(
         url,
-        body: json.encode({'card_number': cardNumber}),
         headers: {'Content-Type': 'application/json'},
+        body: json.encode({'qr_code': qrCode}),
       );
 
+      print('Response status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
       if (response.statusCode == 200) {
-        var responseData = json.decode(response.body);
-        if (responseData['status'] == 'success') {
+        final decodedResponse = json.decode(response.body);
+
+        if (decodedResponse['status'] == 'success') {
           setState(() {
-            scannedData = response.body;
+            cardDetails = decodedResponse['data'];
+            isLoading = false; // Stop loading
           });
+
+          if (cardDetails == null || cardDetails!.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text('No card details found in the response')),
+            );
+          }
         } else {
           setState(() {
-            scannedData = 'Card not found';
+            isLoading = false; // Stop loading
           });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${decodedResponse['message']}')),
+          );
         }
       } else {
+        print('Failed to fetch card details: ${response.statusCode}');
         setState(() {
-          scannedData = 'Error fetching data';
+          isLoading = false; // Stop loading
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Server error: ${response.statusCode}')),
+        );
       }
     } catch (e) {
+      print('Error occurred while fetching card details: $e');
       setState(() {
-        scannedData = 'Error: $e';
+        isLoading = false; // Stop loading
       });
-    }
-  }
-
-  // Callback for handling scanned QR codes
-  void _onBarcodeScanned(BarcodeCapture barcodeCapture) {
-    final barcode = barcodeCapture.barcodes.first;
-    if (barcode.rawValue != null) {
-      String cardNumber = barcode.rawValue!;
-      _fetchCardDetails(
-          cardNumber); // Fetch the card details based on scanned data
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Network error: $e')),
+      );
     }
   }
 
@@ -62,42 +81,32 @@ class _ScanCodePageState extends State<ScanCodePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan Wedding QR Code'),
+        title: const Text('Scan QR Code'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.qr_code),
+            icon: const Icon(Icons.home),
             onPressed: () {
-              Navigator.popAndPushNamed(
-                  context, "/generate"); // Route to GenerateCodePage
+              Navigator.popAndPushNamed(context, "/generate");
             },
           ),
         ],
       ),
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(
-            height: 300,
-            width: 300,
+          Expanded(
             child: MobileScanner(
-              onDetect: _onBarcodeScanned, // Correctly passing the callback
+              controller: cameraController,
+              onDetect: (barcodeCapture) {
+                final String? code = barcodeCapture.barcodes.first.rawValue;
+                if (code != null && code.isNotEmpty) {
+                  _fetchCardDetails(
+                      code); // Fetch card details when QR is scanned
+                }
+              },
             ),
           ),
-          const SizedBox(height: 24),
-          if (scannedData != null) ...[
-            const Text(
-              'Scanned Data:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                scannedData!,
-                style: const TextStyle(fontSize: 16),
-              ),
-            ),
-          ],
+          if (isLoading) // Show loading indicator if fetching
+            const Center(child: CircularProgressIndicator()),
         ],
       ),
     );

@@ -10,7 +10,7 @@ class ScannedDetailsPage extends StatelessWidget {
   // Function to update the status in the database
   Future<void> _updateStatus(String cardNumber) async {
     var url = Uri.parse(
-        'https://theparrot.co.tz/mis.theparrot.co.tz/api/update_status.php'); // Replace with your API endpoint
+        'https://amplepack.co.tz/get_card_details.php'); // Replace with your API endpoint
 
     var data = {
       'card_number': cardNumber,
