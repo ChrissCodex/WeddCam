@@ -283,7 +283,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                     data:
                         '${cardNumberController.text}|${firstNameController.text}|${lastNameController.text}|$cardType',
                     version: QrVersions.auto,
-                    size: 120.0,
+                    size: 100.0,
                     backgroundColor: Colors.white,
                   ),
                 ),
