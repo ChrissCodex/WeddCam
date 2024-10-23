@@ -95,60 +95,78 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
     }
   }
 
-  // Function to print the QR code
-  Future<void> _printQrCode() async {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      try {
-        // Capture the QR code as a base64 image
-        final image = await _capturePng();
-        if (image.isEmpty) {
-          throw Exception('QR code image is empty');
-        }
+ // Function to print the QR code with full name and card number
+Future<void> _printQrCode() async {
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    try {
+      // Capture the QR code as a base64 image
+      final image = await _capturePng();
+      if (image.isEmpty) {
+        throw Exception('QR code image is empty');
+      }
 
-        // Load the logo image from assets
-        final ByteData logoData = await rootBundle.load('assets/logo.jpg');
-        final Uint8List logoBytes = logoData.buffer.asUint8List();
+      // Load the logo image from assets
+      final ByteData logoData = await rootBundle.load('lib/assets/logo.jpg');
+      final Uint8List logoBytes = logoData.buffer.asUint8List();
 
-        await Printing.layoutPdf(
-          onLayout: (PdfPageFormat format) async {
-            final pdfDocument = pw.Document();
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async {
+          final pdfDocument = pw.Document();
 
-            pdfDocument.addPage(
-              pw.Page(
-                build: (pw.Context context) => pw.Center(
-                  child: pw.Column(
-                    mainAxisAlignment: pw.MainAxisAlignment.center,
-                    children: [
-                      // Display the logo image first
-                      pw.Image(
-                        pw.MemoryImage(logoBytes),
-                        width: 100, // You can adjust the size as needed
-                        height: 100,
+          // Add the full name and card number with QR code and logo
+          pdfDocument.addPage(
+            pw.Page(
+              build: (pw.Context context) => pw.Center(
+                child: pw.Column(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    // Full Name (First Name + Last Name)
+                    pw.Text(
+                      'Full Name: ${firstNameController.text} ${lastNameController.text}',
+                      style: pw.TextStyle(
+                        fontSize: 24,
+                        fontWeight: pw.FontWeight.bold,
                       ),
-                       pw.SizedBox(height: 18), // Add some space
-                      // Display the QR code below the logo
-                      pw.Image(
-                        pw.MemoryImage(base64Decode(image)),
-                        width: 200,
-                        height: 200,
+                    ),
+                    pw.SizedBox(height: 8), // Add spacing
+                    // Card Number
+                    pw.Text(
+                      'Card Number: ${cardNumberController.text}',
+                      style: const pw.TextStyle(
+                        fontSize: 18,
                       ),
-                    ],
-                  ),
+                    ),
+                    pw.SizedBox(height: 18), // Add more spacing
+                    // Display the logo image
+                    pw.Image(
+                      pw.MemoryImage(logoBytes),
+                      width: 100, // Adjust the size as needed
+                      height: 100,
+                    ),
+                    pw.SizedBox(height: 18), // Add some space
+                    // Display the QR code below the logo
+                    pw.Image(
+                      pw.MemoryImage(base64Decode(image)),
+                      width: 200,
+                      height: 200,
+                    ),
+                  ],
                 ),
               ),
-            );
+            ),
+          );
 
-            return pdfDocument.save(); // Return the PDF bytes
-          },
-        );
-      } catch (e) {
-        print('Error during printing: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error during printing: $e')),
-        );
-      }
-    });
-  }
+          return pdfDocument.save(); // Return the PDF bytes
+        },
+      );
+    } catch (e) {
+      print('Error during printing: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error during printing: $e')),
+      );
+    }
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +198,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
               value: cardType,
               decoration: InputDecoration(
                 labelText: 'Card Type',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
                 contentPadding: const EdgeInsets.symmetric(
                     vertical: 12.0, horizontal: 11.0),
                 filled: true,
