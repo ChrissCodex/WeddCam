@@ -11,7 +11,7 @@ class ScanDetailPage extends StatelessWidget {
 
   // Function to confirm the scan by sending an update request
   Future<void> _confirmScan(BuildContext context) async {
-    var url = Uri.parse('https://amplepack.co.tz/update_card_status.php'); // Replace with your actual update API URL
+    var url = Uri.parse('http://esit.or.tz/esit/api/update_card_status.php'); // Replace with your actual update API URL
 
     try {
       // Sending a POST request to update the card status

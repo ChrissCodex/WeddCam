@@ -53,7 +53,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
   Future<void> _sendDataToServer(String cardNumber, String firstName,
       String lastName, String cardType, String base64Image) async {
     var url = Uri.parse(
-        'https://amplepack.co.tz/endpoint_api.php'); // Replace with your server's URL
+        'http://esit.or.tz/esit/api/endpoint_api.php'); // Replace with your server's URL
 
     // Data to send
     var data = {

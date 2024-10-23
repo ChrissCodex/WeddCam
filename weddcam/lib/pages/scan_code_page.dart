@@ -13,68 +13,73 @@ class ScanCodePage extends StatefulWidget {
 class _ScanCodePageState extends State<ScanCodePage> {
   MobileScannerController cameraController = MobileScannerController();
   Map<String, dynamic>? cardDetails;
-  bool isLoading = false; // To manage loading state
+  bool isLoading = false;
+  bool isScanning = true; // To control scanner state
 
-  void _fetchCardDetails(String qrCode) async {
-    var url = Uri.parse('https://amplepack.co.tz/get_card_details.php');
+  Future<void> _fetchCardDetails(String cardNumber) async {
+    // Stop scanning while processing
+    setState(() {
+      isLoading = true;
+      isScanning = false;
+    });
 
     try {
-      // Debug print the QR code being sent
-      print('Sending QR code: $qrCode');
-      setState(() {
-        isLoading = true; // Start loading
-      });
-
-      var response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'qr_code': qrCode}),
+      final response = await http.post(
+        Uri.parse('http://esit.or.tz/esit/api/get_card_details.php'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode({'card_number': cardNumber}),
       );
 
-      print('Response status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      print('Scanned Card Number: $cardNumber');
+      print('Response Status: ${response.statusCode}');
+      print('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final decodedResponse = json.decode(response.body);
-
+        
         if (decodedResponse['status'] == 'success') {
           setState(() {
             cardDetails = decodedResponse['data'];
-            isLoading = false; // Stop loading
           });
-
-          if (cardDetails == null || cardDetails!.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('No card details found in the response')),
-            );
-          }
         } else {
-          setState(() {
-            isLoading = false; // Stop loading
-          });
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${decodedResponse['message']}')),
+            SnackBar(
+              content: Text('Error: ${decodedResponse['message']}'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       } else {
-        print('Failed to fetch card details: ${response.statusCode}');
-        setState(() {
-          isLoading = false; // Stop loading
-        });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Server error: ${response.statusCode}')),
+          SnackBar(
+            content: Text('Server error: ${response.statusCode}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
-      print('Error occurred while fetching card details: $e');
-      setState(() {
-        isLoading = false; // Stop loading
-      });
+      print('Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Network error: $e')),
+        SnackBar(
+          content: Text('Network error: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
+  }
+
+  void _resetScan() {
+    setState(() {
+      cardDetails = null;
+      isScanning = true;
+    });
   }
 
   @override
@@ -83,6 +88,10 @@ class _ScanCodePageState extends State<ScanCodePage> {
       appBar: AppBar(
         title: const Text('Scan QR Code'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _resetScan,
+          ),
           IconButton(
             icon: const Icon(Icons.home),
             onPressed: () {
@@ -93,20 +102,101 @@ class _ScanCodePageState extends State<ScanCodePage> {
       ),
       body: Column(
         children: [
-          Expanded(
-            child: MobileScanner(
-              controller: cameraController,
-              onDetect: (barcodeCapture) {
-                final String? code = barcodeCapture.barcodes.first.rawValue;
-                if (code != null && code.isNotEmpty) {
-                  _fetchCardDetails(
-                      code); // Fetch card details when QR is scanned
-                }
-              },
+          if (isScanning && !isLoading) 
+            Expanded(
+              child: MobileScanner(
+                controller: cameraController,
+                onDetect: (barcodeCapture) {
+                  final String? code = barcodeCapture.barcodes.first.rawValue;
+                  if (code != null && code.isNotEmpty) {
+                    _fetchCardDetails(code);
+                  }
+                },
+              ),
+            ),
+          if (isLoading)
+            const Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Fetching card details...'),
+                  ],
+                ),
+              ),
+            ),
+          if (cardDetails != null)
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(16.0),
+                child: Card(
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Card Details',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 16),
+                        DetailRow(label: 'First Name', value: cardDetails!['FirstName']),
+                        DetailRow(label: 'Last Name', value: cardDetails!['LastName']),
+                        DetailRow(label: 'Card Number', value: cardDetails!['CardNumber']),
+                        DetailRow(label: 'Card Type', value: cardDetails!['CardType']),
+                        DetailRow(label: 'Status', value: cardDetails!['Status']),
+                        const SizedBox(height: 24),
+                        Center(
+                          child: ElevatedButton(
+                            onPressed: _resetScan,
+                            child: const Text('Scan Another Card'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// Helper widget for displaying details
+class DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const DetailRow({
+    Key? key,
+    required this.label,
+    required this.value,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-          if (isLoading) // Show loading indicator if fetching
-            const Center(child: CircularProgressIndicator()),
+          Expanded(
+            child: Text(value),
+          ),
         ],
       ),
     );
