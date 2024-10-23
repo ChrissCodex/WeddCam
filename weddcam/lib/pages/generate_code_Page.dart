@@ -154,7 +154,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Generate Wedding QR Code'),
+        title: const Text('Generate Festival QR Code'),
         actions: [
           IconButton(
             onPressed: () {
@@ -267,9 +267,9 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                   );
                 }
               },
-              child: const Text('Generate QR Code'),
+              child: const Text('Save Data to Generate QR Code'),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 3),
             // Conditional display of QR code
             if (cardNumberController.text.isNotEmpty &&
                 firstNameController.text.isNotEmpty &&
@@ -278,7 +278,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                 key: globalKey,
                 child: Container(
                   color: Colors.white,
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   child: QrImageView(
                     data:
                         '${cardNumberController.text}|${firstNameController.text}|${lastNameController.text}|$cardType',
