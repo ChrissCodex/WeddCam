@@ -153,30 +153,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextField(
-              controller: cardNumberController,
-              decoration: const InputDecoration(
-                labelText: 'Card Number',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: firstNameController,
-              decoration: const InputDecoration(
-                labelText: 'First Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: lastNameController,
-              decoration: const InputDecoration(
-                labelText: 'Last Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 6),
+            
             DropdownButtonFormField<String>(
               value: cardType,
               decoration: InputDecoration(
@@ -200,6 +177,31 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                 }
               },
             ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: cardNumberController,
+              decoration: const InputDecoration(
+                labelText: 'Card Number',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: firstNameController,
+              decoration: const InputDecoration(
+                labelText: 'First Name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: lastNameController,
+              decoration: const InputDecoration(
+                labelText: 'Last Name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            
             const SizedBox(height: 6),
             ElevatedButton(
               onPressed: () async {
@@ -255,7 +257,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                 child: QrImageView(
                   data: cardNumberController.text,
                   version: QrVersions.auto,
-                  size: 200.0,
+                  size: 160.0,
                 ),
               ),
             ],
