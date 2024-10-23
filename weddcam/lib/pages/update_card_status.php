@@ -31,6 +31,6 @@ if ($conn->connect_error) {
     // Send a success response
     echo json_encode(['status' => 'success', 'message' => 'Card status updated successfully']);
   } else {
-    echo json_encode(['status' => 'error', 'message' => 'Invalid inputs']);
+    echo json_encode(['status' => 'error', 'message' => 'Invalid input']);
   }
 ?>
