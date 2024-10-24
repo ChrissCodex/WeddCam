@@ -95,8 +95,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
     }
   }
 
- // Function to print the QR code with full name and card number
-Future<void> _printQrCode() async {
+ Future<void> _printQrCode() async {
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     try {
       // Capture the QR code as a base64 image
@@ -109,49 +108,51 @@ Future<void> _printQrCode() async {
       final ByteData logoData = await rootBundle.load('lib/assets/logo.jpg');
       final Uint8List logoBytes = logoData.buffer.asUint8List();
 
+      // Load the background image from assets (buhaya1.png)
+      final ByteData backgroundData = await rootBundle.load('lib/assets/buhaya1.png');
+      final Uint8List backgroundBytes = backgroundData.buffer.asUint8List();
+
       await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async {
           final pdfDocument = pw.Document();
 
-          // Add the full name and card number with QR code and logo
+          // Add the QR code with background and logo
           pdfDocument.addPage(
             pw.Page(
-              build: (pw.Context context) => pw.Center(
-                child: pw.Column(
-                  mainAxisAlignment: pw.MainAxisAlignment.center,
-                  children: [
-                    // Full Name (First Name + Last Name)
-                    pw.Text(
-                      'Full Name: ${firstNameController.text} ${lastNameController.text}',
-                      style: pw.TextStyle(
-                        fontSize: 24,
-                        fontWeight: pw.FontWeight.bold,
+              pageFormat: format,
+              build: (pw.Context context) => pw.Stack(
+                children: [
+                  // Set the background image (buhaya1.png)
+                  pw.Positioned.fill(
+                    child: pw.Image(
+                      pw.MemoryImage(backgroundBytes),
+                      fit: pw.BoxFit.cover,
+                    ),
+                  ),
+                  // Center the logo
+                  pw.Positioned(
+                    top: 210,  // Adjust this value to move the logo up or down
+                    left: 0,
+                    right: 0,
+                    child: pw.Center(
+                      child: pw.Image(
+                        pw.MemoryImage(logoBytes),
+                        width: 130, // Adjust the size as needed
+                        height: 130,
                       ),
                     ),
-                    pw.SizedBox(height: 8), // Add spacing
-                    // Card Number
-                    pw.Text(
-                      'Card Number: ${cardNumberController.text}',
-                      style: const pw.TextStyle(
-                        fontSize: 18,
-                      ),
-                    ),
-                    pw.SizedBox(height: 18), // Add more spacing
-                    // Display the logo image
-                    pw.Image(
-                      pw.MemoryImage(logoBytes),
-                      width: 100, // Adjust the size as needed
-                      height: 100,
-                    ),
-                    pw.SizedBox(height: 18), // Add some space
-                    // Display the QR code below the logo
-                    pw.Image(
+                  ),
+                  // Position the QR code at the bottom left
+                  pw.Positioned(
+                    bottom: 10, // Adjust the bottom padding as needed
+                    left: 10,   // Adjust the left padding as needed
+                    child: pw.Image(
                       pw.MemoryImage(base64Decode(image)),
-                      width: 200,
-                      height: 200,
+                      width: 120,
+                      height: 120,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           );
@@ -168,6 +169,8 @@ Future<void> _printQrCode() async {
   });
 }
 
+
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
