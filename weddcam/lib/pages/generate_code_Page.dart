@@ -79,12 +79,12 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
         print('Data sent to server successfully');
         print('Response: ${response.body}');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Data sent successfully!')),
+          const SnackBar(content: Text('Data sent successfully!')),
         );
       } else {
         print('Failed to send data: ${response.statusCode}, ${response.body}');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send data to server')),
+          const SnackBar(content: Text('Failed to send data to server')),
         );
       }
     } catch (e) {
@@ -104,10 +104,6 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
         throw Exception('QR code image is empty');
       }
 
-      // Load the logo image from assets
-      final ByteData logoData = await rootBundle.load('lib/assets/logo.jpg');
-      final Uint8List logoBytes = logoData.buffer.asUint8List();
-
       // Load the background image from assets (buhaya1.png)
       final ByteData backgroundData = await rootBundle.load('lib/assets/buhaya1.png');
       final Uint8List backgroundBytes = backgroundData.buffer.asUint8List();
@@ -116,7 +112,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
         onLayout: (PdfPageFormat format) async {
           final pdfDocument = pw.Document();
 
-          // Add the QR code with background and logo
+          // Add the QR code with background and personalized text
           pdfDocument.addPage(
             pw.Page(
               pageFormat: format,
@@ -129,23 +125,39 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
                       fit: pw.BoxFit.cover,
                     ),
                   ),
-                  // Center the logo
+                  // Center the full name (First Name + Last Name)
                   pw.Positioned(
-                    top: 210,  // Adjust this value to move the logo up or down
+                    top: 200,  // Adjust this value to move the text up or down
                     left: 0,
                     right: 0,
                     child: pw.Center(
-                      child: pw.Image(
-                        pw.MemoryImage(logoBytes),
-                        width: 130, // Adjust the size as needed
-                        height: 130,
+                      child: pw.Column(
+                        mainAxisSize: pw.MainAxisSize.min,
+                        children: [
+                          pw.Text(
+                            '${firstNameController.text} ${lastNameController.text}', // Full name
+                            style: pw.TextStyle(
+                              fontSize: 50, // Large font size
+                              fontWeight: pw.FontWeight.bold, // Bold text
+                              fontStyle: pw.FontStyle.italic, // Italic text
+                            ),
+                          ),
+                          pw.SizedBox(height: 10), // Spacing between name and card number
+                          pw.Text(
+                            'Card Number: ${cardNumberController.text}', // Card number
+                            style: pw.TextStyle(
+                              fontSize: 34, // Slightly smaller font for card number
+                              fontWeight: pw.FontWeight.normal,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                   // Position the QR code at the bottom left
                   pw.Positioned(
-                    bottom: 10, // Adjust the bottom padding as needed
-                    left: 10,   // Adjust the left padding as needed
+                    bottom: 50, // Adjust the bottom padding as needed
+                    left: 40,   // Adjust the left padding as needed
                     child: pw.Image(
                       pw.MemoryImage(base64Decode(image)),
                       width: 120,
@@ -168,7 +180,6 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
     }
   });
 }
-
 
   
   @override
