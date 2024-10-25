@@ -105,7 +105,7 @@ class _GenerateCodePageState extends State<GenerateCodePage> {
       }
 
       // Load the background image from assets (buhaya1.png)
-      final ByteData backgroundData = await rootBundle.load('lib/assets/buhaya1.png');
+      final ByteData backgroundData = await rootBundle.load('lib/assets/buhaya12.png');
       final Uint8List backgroundBytes = backgroundData.buffer.asUint8List();
 
       await Printing.layoutPdf(
