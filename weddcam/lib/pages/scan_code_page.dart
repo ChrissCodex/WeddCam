@@ -1,22 +1,82 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-import 'package:qr_code_scanner/qr_code_scanner.dart';
-
 class ScanCodePage extends StatefulWidget {
   @override
-  _ScanPageState createState() => _ScanPageState();
+  _ScanCodePageState createState() => _ScanCodePageState();
 }
 
-class _ScanPageState extends State<ScanCodePage> {
-  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
-  QRViewController? controller;
+class _ScanCodePageState extends State<ScanCodePage> {
+  final String baseUrl =
+      'http://esit.or.tz/esit/api/'; // Replace with your API base URL
   bool isScanning = true;
   String scanResult = '';
 
-  // Replace with your domain
-  final String baseUrl = 'http://esit.or.tz/esit/api/';
+  void _onDetect(BarcodeCapture barcodeCapture) async {
+    if (!isScanning || barcodeCapture.barcodes.isEmpty) return;
+
+    final String? code = barcodeCapture.barcodes.first.rawValue;
+    if (code == null) return;
+
+    setState(() => isScanning = false); // Stop further scans
+
+    final response = await _checkAndUpdateStatus(code);
+    setState(() {
+      scanResult = response;
+    });
+
+    // Resume scanning after a delay
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() => isScanning = true);
+      }
+    });
+  }
+
+  Future<String> _checkAndUpdateStatus(String qrCode) async {
+    try {
+      // First, check the current status of the QR code
+      final checkResponse = await http.get(
+        Uri.parse('$baseUrl/update_card_status.php?qr_code=$qrCode'),
+      );
+
+      if (checkResponse.statusCode == 200) {
+        final checkData = json.decode(checkResponse.body);
+
+        if (checkData['status'] == 'Scanned') {
+          return 'QR Code already scanned!\nDetails:\n${_formatDetails(checkData)}';
+        } else {
+          // Update the status to 'Scanned'
+          final updateResponse = await http.post(
+            Uri.parse('$baseUrl/update.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({'qr_code': qrCode}),
+          );
+
+          if (updateResponse.statusCode == 200) {
+            final updateData = json.decode(updateResponse.body);
+            return 'Successfully scanned!\nDetails:\n${_formatDetails(updateData)}';
+          } else {
+            return 'Error updating status';
+          }
+        }
+      } else {
+        return 'Failed to check QR status';
+      }
+    } catch (e) {
+      return 'Error: ${e.toString()}';
+    }
+  }
+
+  String _formatDetails(Map<String, dynamic> data) {
+    final excludeKeys = ['error', 'success'];
+    return data.entries
+        .where((e) => !excludeKeys.contains(e.key))
+        .map((e) => '${e.key}: ${e.value}')
+        .join('\n');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +86,7 @@ class _ScanPageState extends State<ScanCodePage> {
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.popAndPushNamed(context, "/generate"); // Switch to scan page
+              Navigator.popAndPushNamed(context, "/generate"); // Switch to generate page
             },
             icon: const Icon(Icons.qr_code_scanner),
           ),
@@ -36,9 +96,8 @@ class _ScanPageState extends State<ScanCodePage> {
         children: [
           Expanded(
             flex: 5,
-            child: QRView(
-              key: qrKey,
-              onQRViewCreated: _onQRViewCreated,
+            child: MobileScanner(
+              onDetect: _onDetect,
             ),
           ),
           Expanded(
@@ -61,113 +120,8 @@ class _ScanPageState extends State<ScanCodePage> {
     );
   }
 
-  void _onQRViewCreated(QRViewController controller) {
-    this.controller = controller;
-    controller.scannedDataStream.listen((scanData) async {
-      if (!isScanning) return;
-      
-      isScanning = false;
-      controller.pauseCamera();
-      
-      await processQRCode(scanData.code ?? '');
-    });
-  }
-
-  Future<void> processQRCode(String qrData) async {
-    try {
-      // Check QR status
-      final response = await checkQRStatus(qrData);
-      
-      if (response['error'] != null) {
-        setState(() {
-          scanResult = 'Error: ${response['error']}';
-        });
-        return;
-      }
-
-      if (response['status'] == 'Scanned') {
-        setState(() {
-          scanResult = 'QR Code already scanned!\n\nDetails:\n' +
-              formatDetails(response);
-        });
-      } else {
-        // Update status to 'Scanned'
-        final updateResponse = await updateQRStatus(qrData);
-        
-        if (updateResponse['error'] != null) {
-          setState(() {
-            scanResult = 'Error updating status: ${updateResponse['error']}';
-          });
-          return;
-        }
-
-        setState(() {
-          scanResult = 'Successfully scanned!\n\nDetails:\n' +
-              formatDetails(updateResponse);
-        });
-      }
-    } catch (e) {
-      setState(() {
-        scanResult = 'Error: ${e.toString()}';
-      });
-    } finally {
-      // Reset after 3 seconds and resume scanning
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) {
-          setState(() {
-            isScanning = true;
-            controller?.resumeCamera();
-          });
-        }
-      });
-    }
-  }
-
-  Future<Map<String, dynamic>> checkQRStatus(String qrCode) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/update_card_status.php?qr_code=$qrCode'),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        return {'error': 'Failed to check QR status'};
-      }
-    } catch (e) {
-      return {'error': e.toString()};
-    }
-  }
-
-  Future<Map<String, dynamic>> updateQRStatus(String qrCode) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/update.php'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'qr_code': qrCode}),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        return {'error': 'Failed to update QR status'};
-      }
-    } catch (e) {
-      return {'error': e.toString()};
-    }
-  }
-
-  String formatDetails(Map<String, dynamic> data) {
-    final excludeKeys = ['error', 'success'];
-    return data.entries
-        .where((e) => !excludeKeys.contains(e.key))
-        .map((e) => '${e.key}: ${e.value}')
-        .join('\n');
-  }
-
   @override
   void dispose() {
-    controller?.dispose();
     super.dispose();
   }
 }
