@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         "/generate": (context) => const GenerateCodePage(),
-        "/scan": (context) =>  const ScanCodePage(),
+        "/scan": (context) =>  ScanCodePage(),
       },
       initialRoute: "/scan", // Start with ScanCodePage
     );

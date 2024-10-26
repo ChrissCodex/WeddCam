@@ -1,204 +1,173 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-class ScanCodePage extends StatefulWidget {
-  const ScanCodePage({Key? key}) : super(key: key);
+import 'package:qr_code_scanner/qr_code_scanner.dart';
 
+class ScanCodePage extends StatefulWidget {
   @override
-  State<ScanCodePage> createState() => _ScanCodePageState();
+  _ScanPageState createState() => _ScanPageState();
 }
 
-class _ScanCodePageState extends State<ScanCodePage> {
-  MobileScannerController cameraController = MobileScannerController();
-  Map<String, dynamic>? cardDetails;
-  bool isLoading = false;
-  bool isScanning = true; // To control scanner state
+class _ScanPageState extends State<ScanCodePage> {
+  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+  QRViewController? controller;
+  bool isScanning = true;
+  String scanResult = '';
 
-  Future<void> _fetchCardDetails(String cardNumber) async {
-    // Stop scanning while processing
-    setState(() {
-      isLoading = true;
-      isScanning = false;
-    });
-
-    try {
-      final response = await http.post(
-        Uri.parse('http://esit.or.tz/esit/api/get_card_details.php'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode({'card_number': cardNumber}),
-      );
-
-      print('Scanned Card Number: $cardNumber');
-      print('Response Status: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final decodedResponse = json.decode(response.body);
-        
-        if (decodedResponse['status'] == 'success') {
-          setState(() {
-            cardDetails = decodedResponse['data'];
-          });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${decodedResponse['message']}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Server error: ${response.statusCode}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Network error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-
-  void _resetScan() {
-    setState(() {
-      cardDetails = null;
-      isScanning = true;
-    });
-  }
+  // Replace with your domain
+  final String baseUrl = 'http://esit.or.tz/esit/api/';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan QR Code'),
+        title: const Text('QR Scanner'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _resetScan,
-          ),
-          IconButton(
-            icon: const Icon(Icons.home),
             onPressed: () {
-              Navigator.popAndPushNamed(context, "/generate");
+              Navigator.popAndPushNamed(context, "/generate"); // Switch to scan page
             },
+            icon: const Icon(Icons.qr_code_scanner),
           ),
         ],
       ),
       body: Column(
         children: [
-          if (isScanning && !isLoading) 
-            Expanded(
-              child: MobileScanner(
-                controller: cameraController,
-                onDetect: (barcodeCapture) {
-                  final String? code = barcodeCapture.barcodes.first.rawValue;
-                  if (code != null && code.isNotEmpty) {
-                    _fetchCardDetails(code);
-                  }
-                },
-              ),
+          Expanded(
+            flex: 5,
+            child: QRView(
+              key: qrKey,
+              onQRViewCreated: _onQRViewCreated,
             ),
-          if (isLoading)
-            const Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Fetching card details...'),
-                  ],
-                ),
-              ),
-            ),
-          if (cardDetails != null)
-            Expanded(
-              child: Container(
+          ),
+          Expanded(
+            flex: 2,
+            child: Center(
+              child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Card(
-                  elevation: 4,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Card Details',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: 16),
-                        DetailRow(label: 'First Name', value: cardDetails!['FirstName']),
-                        DetailRow(label: 'Last Name', value: cardDetails!['LastName']),
-                        DetailRow(label: 'Card Number', value: cardDetails!['CardNumber']),
-                        DetailRow(label: 'Card Type', value: cardDetails!['CardType']),
-                        DetailRow(label: 'Status', value: cardDetails!['Status']),
-                        const SizedBox(height: 24),
-                        Center(
-                          child: ElevatedButton(
-                            onPressed: _resetScan,
-                            child: const Text('Scan Another Card'),
-                          ),
-                        ),
-                      ],
-                    ),
+                child: SingleChildScrollView(
+                  child: Text(
+                    scanResult,
+                    style: const TextStyle(fontSize: 16),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ),
             ),
+          ),
         ],
       ),
     );
   }
-}
 
-// Helper widget for displaying details
-class DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
+  void _onQRViewCreated(QRViewController controller) {
+    this.controller = controller;
+    controller.scannedDataStream.listen((scanData) async {
+      if (!isScanning) return;
+      
+      isScanning = false;
+      controller.pauseCamera();
+      
+      await processQRCode(scanData.code ?? '');
+    });
+  }
 
-  const DetailRow({
-    Key? key,
-    required this.label,
-    required this.value,
-  }) : super(key: key);
+  Future<void> processQRCode(String qrData) async {
+    try {
+      // Check QR status
+      final response = await checkQRStatus(qrData);
+      
+      if (response['error'] != null) {
+        setState(() {
+          scanResult = 'Error: ${response['error']}';
+        });
+        return;
+      }
+
+      if (response['status'] == 'Scanned') {
+        setState(() {
+          scanResult = 'QR Code already scanned!\n\nDetails:\n' +
+              formatDetails(response);
+        });
+      } else {
+        // Update status to 'Scanned'
+        final updateResponse = await updateQRStatus(qrData);
+        
+        if (updateResponse['error'] != null) {
+          setState(() {
+            scanResult = 'Error updating status: ${updateResponse['error']}';
+          });
+          return;
+        }
+
+        setState(() {
+          scanResult = 'Successfully scanned!\n\nDetails:\n' +
+              formatDetails(updateResponse);
+        });
+      }
+    } catch (e) {
+      setState(() {
+        scanResult = 'Error: ${e.toString()}';
+      });
+    } finally {
+      // Reset after 3 seconds and resume scanning
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) {
+          setState(() {
+            isScanning = true;
+            controller?.resumeCamera();
+          });
+        }
+      });
+    }
+  }
+
+  Future<Map<String, dynamic>> checkQRStatus(String qrCode) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/update_card_status.php?qr_code=$qrCode'),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        return {'error': 'Failed to check QR status'};
+      }
+    } catch (e) {
+      return {'error': e.toString()};
+    }
+  }
+
+  Future<Map<String, dynamic>> updateQRStatus(String qrCode) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/update.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'qr_code': qrCode}),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        return {'error': 'Failed to update QR status'};
+      }
+    } catch (e) {
+      return {'error': e.toString()};
+    }
+  }
+
+  String formatDetails(Map<String, dynamic> data) {
+    final excludeKeys = ['error', 'success'];
+    return data.entries
+        .where((e) => !excludeKeys.contains(e.key))
+        .map((e) => '${e.key}: ${e.value}')
+        .join('\n');
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(value),
-          ),
-        ],
-      ),
-    );
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
   }
 }
