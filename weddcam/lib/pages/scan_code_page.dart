@@ -9,6 +9,7 @@ class ScanCodePage extends StatefulWidget {
 class _ScanCodePageState extends State<ScanCodePage> {
   bool isScanning = true;
   String scanResult = '';
+  final Set<String> scannedCodes = {}; // Set to track scanned QR codes
 
   void _onDetect(BarcodeCapture barcodeCapture) {
     if (!isScanning || barcodeCapture.barcodes.isEmpty) return;
@@ -16,9 +17,19 @@ class _ScanCodePageState extends State<ScanCodePage> {
     final String? code = barcodeCapture.barcodes.first.rawValue;
     if (code == null) return;
 
+    if (scannedCodes.contains(code)) {
+      // If the scanned code is already in the set, show a message
+      setState(() {
+        scanResult = 'QR Code already scanned: $code';
+      });
+      return; // Do not proceed with further processing
+    }
+
+    // Update the set with the scanned code and stop further scans
     setState(() {
-      isScanning = false; // Stop further scans
-      scanResult = code;  // Store the scanned QR code value
+      scannedCodes.add(code); // Store the scanned QR code in the set
+      isScanning = false;      // Stop further scans
+      scanResult = code;       // Store the scanned QR code value
     });
 
     // Resume scanning after a delay
@@ -37,11 +48,10 @@ class _ScanCodePageState extends State<ScanCodePage> {
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.popAndPushNamed(context, "/generate"); // Switch to scan page
+              Navigator.popAndPushNamed(context, "/generate"); // Switch to generate page
             },
             icon: const Icon(Icons.qr_code_scanner),
           ),
-          
         ],
       ),
       body: Column(
